@@ -1,6 +1,5 @@
 import csv
 
-from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import IntegrityError
 
@@ -11,8 +10,7 @@ class Command(BaseCommand):
     """Загрузка данных из CSV файла в базу данных."""
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS(
-                'Начинаем загрузку данных из CSV файла...')
-        )
+                'Начинаем загрузку данных из CSV файла...'))
 
         try:
             with open(
