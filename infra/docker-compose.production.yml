@@ -12,11 +12,11 @@ services:
     volumes:
       - foodgram_data:/var/lib/postgresql/data
     ports:
-      - '5432:5432'
+      - "5432:5432"
     restart: always
 
   backend:
-    build: ../backend/
+    image: tsroman/foodgram_backend
     env_file: ./.env
     volumes:
       - backend_static:/app/static/
@@ -26,7 +26,7 @@ services:
     restart: always
 
   frontend:
-    build: ../frontend
+    image: tsroman/foodgram_frontend
     volumes:
       - ../frontend/:/app/result_build/
     depends_on:
@@ -35,7 +35,7 @@ services:
   nginx:
     image: nginx:1.22.1
     ports:
-      - '8000:80'
+      - "8000:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ../frontend/build:/usr/share/nginx/html/
