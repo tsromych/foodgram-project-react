@@ -115,7 +115,7 @@ cd foodgram-project-react
 docker compose up
 ```
 
-В папке с файлом `docker-compose.yml` выполните миграции командой:
+В папке с файлом `docker compose.yml` выполните миграции командой:
 
 ```bash
 docker compose exec backend python3 manage.py migrate
