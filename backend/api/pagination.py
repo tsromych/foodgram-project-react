@@ -1,6 +1,6 @@
 from rest_framework.pagination import PageNumberPagination
 
-from foodgram_backend.settings import CUSTOM_PAGINATION_PAGE_SIZE
+CUSTOM_PAGINATION_PAGE_SIZE = 6
 
 
 class CustomPagination(PageNumberPagination):

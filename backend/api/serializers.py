@@ -1,6 +1,8 @@
 from django.db import transaction
 from djoser.serializers import UserCreateSerializer, UserSerializer
-from rest_framework import serializers
+from rest_framework.serializers import (IntegerField, ModelSerializer,
+                                        PrimaryKeyRelatedField, ReadOnlyField,
+                                        SerializerMethodField, ValidationError)
 
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredients,
                             ShoppingCart, Tag, User)
@@ -10,7 +12,7 @@ from .utils import Base64ImageField
 
 class UserReadSerializer(UserSerializer):
     """Cписок пользователей (метод GET)."""
-    is_subscribed = serializers.SerializerMethodField()
+    is_subscribed = SerializerMethodField()
 
     class Meta:
         model = User
@@ -32,10 +34,10 @@ class UserReadSerializer(UserSerializer):
         return False
 
 
-class RecipeSerializer(serializers.ModelSerializer):
+class RecipeSerializer(ModelSerializer):
     """Список рецептов."""
-    name = serializers.ReadOnlyField()
-    cooking_time = serializers.ReadOnlyField()
+    name = ReadOnlyField()
+    cooking_time = ReadOnlyField()
 
     class Meta:
         model = Recipe
@@ -49,11 +51,11 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 class SubscribeSerializer(UserCreateSerializer):
     """Подписка на автора и отписка (методы GET, POST, DELETE)."""
-    email = serializers.ReadOnlyField()
-    username = serializers.ReadOnlyField()
-    is_subscribed = serializers.SerializerMethodField()
-    recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
+    email = ReadOnlyField()
+    username = ReadOnlyField()
+    is_subscribed = SerializerMethodField()
+    recipes = SerializerMethodField()
+    recipes_count = SerializerMethodField()
 
     class Meta:
         model = User
@@ -77,13 +79,9 @@ class SubscribeSerializer(UserCreateSerializer):
             user = self.context['request'].user
             author = self.context['author']
             if user == author:
-                raise serializers.ValidationError(
-                    'Нельзя подписаться на самого себя'
-                )
+                raise ValidationError('Нельзя подписаться на самого себя')
             if Subscription.objects.filter(user=user, author=author).exists():
-                raise serializers.ValidationError(
-                    'Нельзя оформить подписку дважды'
-                )
+                raise ValidationError('Нельзя оформить подписку дважды')
         return data
 
     def get_is_subscribed(self, obj):
@@ -106,7 +104,7 @@ class SubscribeSerializer(UserCreateSerializer):
         return obj.recipes.count()
 
 
-class IngredientSerializer(serializers.ModelSerializer):
+class IngredientSerializer(ModelSerializer):
     """Список ингредиентов (метод GET)."""
 
     class Meta:
@@ -114,7 +112,7 @@ class IngredientSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class TagSerializer(serializers.ModelSerializer):
+class TagSerializer(ModelSerializer):
     """Список тегов (метод GET)."""
 
     class Meta:
@@ -122,11 +120,11 @@ class TagSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class RecipeIngredientSerializer(serializers.ModelSerializer):
+class RecipeIngredientSerializer(ModelSerializer):
     """Список ингредиентов с количеством."""
-    id = serializers.ReadOnlyField(source='ingredient.id')
-    name = serializers.ReadOnlyField(source='ingredient.name')
-    measurement_unit = serializers.ReadOnlyField(
+    id = ReadOnlyField(source='ingredient.id')
+    name = ReadOnlyField(source='ingredient.name')
+    measurement_unit = ReadOnlyField(
         source='ingredient.measurement_unit')
 
     class Meta:
@@ -139,7 +137,7 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
         )
 
 
-class RecipeReadSerializer(serializers.ModelSerializer):
+class RecipeReadSerializer(ModelSerializer):
     """Список рецептов (метод GET)."""
     author = UserReadSerializer(read_only=True)
     tags = TagSerializer(many=True)
@@ -148,8 +146,8 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         read_only=True,
         source='recipes'
     )
-    is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
+    is_favorited = SerializerMethodField()
+    is_in_shopping_cart = SerializerMethodField()
     image = Base64ImageField()
 
     class Meta:
@@ -182,9 +180,9 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         )
 
 
-class RecipeIngredientCreateSerializer(serializers.ModelSerializer):
+class RecipeIngredientCreateSerializer(ModelSerializer):
     """Ингредиент и количество для создания рецепта."""
-    id = serializers.IntegerField()
+    id = IntegerField()
 
     class Meta:
         model = RecipeIngredients
@@ -194,9 +192,9 @@ class RecipeIngredientCreateSerializer(serializers.ModelSerializer):
         )
 
 
-class RecipeCreateSerializer(serializers.ModelSerializer):
+class RecipeCreateSerializer(ModelSerializer):
     """Создание, изменение и удаление рецепта (методы POST, PATCH, DELETE)."""
-    tags = serializers.PrimaryKeyRelatedField(
+    tags = PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
         many=True,
     )
@@ -234,29 +232,21 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         for item in current_obj:
             id = item if class_name == 'tags' else item['id']
             if not MODELS_DICT[class_name].objects.filter(id=id).exists():
-                raise serializers.ValidationError(
-                    'Указано несуществующее значение'
-                )
+                raise ValidationError('Указано несуществующее значение')
             current_model = MODELS_DICT[class_name].objects.get(id=id)
             if current_model in obj_list:
-                raise serializers.ValidationError(
-                    'Значения не могут повторяться'
-                )
+                raise ValidationError('Значения не могут повторяться')
             obj_list.append(current_model)
 
     def validate(self, data):
         tags = self.initial_data.get('tags')
         if not tags:
-            raise serializers.ValidationError(
-                'Нужно указать минимум 1 тег.'
-            )
+            raise ValidationError('Нужно указать минимум 1 тег.')
         self.tags_and_ingredients_validating(tags, 'tags')
 
         ingredients = data.get('ingredients')
         if not ingredients:
-            raise serializers.ValidationError(
-                'Нужно указать минимум 1 ингредиент.'
-            )
+            raise ValidationError('Нужно указать минимум 1 ингредиент.')
         self.tags_and_ingredients_validating(ingredients, 'ingredients')
         return data
 
