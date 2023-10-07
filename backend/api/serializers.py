@@ -224,16 +224,16 @@ class RecipeCreateSerializer(ModelSerializer):
         }
 
     def tags_and_ingredients_validating(self, current_obj, class_name):
-        MODELS_DICT = {
+        models_dict = {
             'tags': Tag,
             'ingredients': Ingredient
         }
         obj_list = []
         for item in current_obj:
             id = item if class_name == 'tags' else item['id']
-            if not MODELS_DICT[class_name].objects.filter(id=id).exists():
+            if not models_dict[class_name].objects.filter(id=id).exists():
                 raise ValidationError('Указано несуществующее значение')
-            current_model = MODELS_DICT[class_name].objects.get(id=id)
+            current_model = models_dict[class_name].objects.get(id=id)
             if current_model in obj_list:
                 raise ValidationError('Значения не могут повторяться')
             obj_list.append(current_model)
