@@ -66,6 +66,8 @@ AUTH_USER_MODEL = 'users.CustomUser'
 # Database
 DATABASES = {
     'default': {
+        # 'ENGINE': 'django.db.backends.sqlite3',
+        # 'NAME': BASE_DIR / 'db.sqlite3',
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('POSTGRES_DB', 'postgres'),
         'USER': os.getenv('POSTGRES_USER', 'django'),
@@ -92,6 +94,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CUSTOM_PAGINATION_PAGE_SIZE = 6
+PAGE_SIZE_VALUE = 6
+
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
@@ -109,7 +114,7 @@ REST_FRAMEWORK = {
         'rest_framework.pagination.PageNumberPagination',
     ],
 
-    'PAGE_SIZE': 6,
+    'PAGE_SIZE': PAGE_SIZE_VALUE,
 }
 
 DJOSER = {
@@ -117,17 +122,14 @@ DJOSER = {
     'HIDE_USERS': False,
     'SERIALIZERS': {
         'user': 'api.serializers.UserReadSerializer',
-        'user_create': 'api.serializers.UserCreateSerializer',
-        'current_user': 'api.serializers.UserReadSerializer',
-        'user_list': 'api.serializers.UserCreateSerializer',
     },
     'PERMISSIONS': {
         'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
-        'user_list': ['rest_framework.permissions.AllowAny']
+        'user_list': ['rest_framework.permissions.AllowAny'],
     },
 }
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru'
 
 TIME_ZONE = 'UTC'
 

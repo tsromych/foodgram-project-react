@@ -1,16 +1,16 @@
 import re
 
-from rest_framework import serializers
+from django.core.exceptions import ValidationError
 
 
 def check_username(username):
     invalid_username = ['me']
     if username in invalid_username:
-        raise serializers.ValidationError(
+        raise ValidationError(
             'Введенное имя недопустимо!'
         )
     if not re.match(r'[\w.@+-]+\Z', username):
-        raise serializers.ValidationError(
+        raise ValidationError(
             'В имени использованы недопустимые символы!'
         )
     return username

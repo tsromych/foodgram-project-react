@@ -1,40 +1,39 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from api.service_functions import check_username
-
-EMAIL_FIELD_LENGTH = 254
-USERNAME_FIELD_LENGTH = 150
-FIRST_NAME_FIELD_LENGTH = 150
-LAST_NAME_FIELD_LENGTH = 150
+from . import constants
+from .validators import check_username
 
 
 class CustomUser(AbstractUser):
     email = models.EmailField(
-        max_length=EMAIL_FIELD_LENGTH,
+        max_length=constants.EMAIL_FIELD_LENGTH,
         unique=True,
         verbose_name='Адрес электронной почты'
     )
     username = models.CharField(
-        max_length=USERNAME_FIELD_LENGTH,
+        max_length=constants.USERNAME_FIELD_LENGTH,
         blank=False,
         unique=True,
-        validators=(check_username,),
+        validators=[check_username],
         verbose_name='Уникальный юзернейм'
     )
     first_name = models.CharField(
-        max_length=FIRST_NAME_FIELD_LENGTH,
+        max_length=constants.FIRST_NAME_FIELD_LENGTH,
         verbose_name='Имя'
     )
     last_name = models.CharField(
-        max_length=LAST_NAME_FIELD_LENGTH,
+        max_length=constants.LAST_NAME_FIELD_LENGTH,
         verbose_name='Фамилия'
     )
 
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name', 'password']
+
     class Meta:
         ordering = ('id',)
-        verbose_name = 'Пользователь'
-        verbose_name_plural = 'Пользователи'
+        verbose_name = 'пользователь'
+        verbose_name_plural = 'пользователи'
 
     def __str__(self):
         return self.username
@@ -59,10 +58,14 @@ class Subscription(models.Model):
             models.UniqueConstraint(
                 fields=('user', 'author'),
                 name='unique_subscribe'
+            ),
+            models.CheckConstraint(
+                check=~models.Q(user=models.F('author')),
+                name='check_user_subscribing'
             )
         ]
-        verbose_name = 'Подписка'
-        verbose_name_plural = 'Подписки'
+        verbose_name = 'подписка'
+        verbose_name_plural = 'подписки'
 
     def __str__(self):
-        return f'{self.user} {self.author}'
+        return f'{self.user} подписан на {self.author}'

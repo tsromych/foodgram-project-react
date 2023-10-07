@@ -1,28 +1,11 @@
-import base64
-
-from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
-from django.core import exceptions as django_exceptions
-from django.core.files.base import ContentFile
 from django.db import transaction
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredients,
-                            ShoppingCart, Tag)
+                            ShoppingCart, Tag, User)
 from users.models import Subscription
-from .service_functions import check_username
-
-User = get_user_model()
-
-
-class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name='photo.' + ext)
-        return super().to_internal_value(data)
+from .utils import Base64ImageField
 
 
 class UserReadSerializer(UserSerializer):
@@ -49,54 +32,6 @@ class UserReadSerializer(UserSerializer):
         return False
 
 
-class UserCreateSerializer(UserCreateSerializer):
-    """Создание нового пользователя (метод POST)."""
-
-    class Meta:
-        model = User
-        fields = (
-            'email',
-            'id',
-            'username',
-            'first_name',
-            'last_name',
-            'password'
-        )
-        # extra_kwargs = {'password': {'write_only': True}}
-
-    def validate_username(self, name):
-        return check_username(name)
-
-
-class SetPasswordSerializer(serializers.Serializer):
-    """Изменение пароля пользователя (метод POST)."""
-    current_password = serializers.CharField()
-    new_password = serializers.CharField()
-
-    def validate(self, data):
-        try:
-            validate_password(data['new_password'])
-        except django_exceptions.ValidationError as e:
-            raise serializers.ValidationError(
-                {'new_password': list(e.messages)}
-            )
-        return super().validate(data)
-
-    def update(self, instance, validated_data):
-        if not instance.check_password(validated_data['current_password']):
-            raise serializers.ValidationError(
-                {'current_password': 'Неправильный пароль.'}
-            )
-        if (validated_data['current_password']
-           == validated_data['new_password']):
-            raise serializers.ValidationError(
-                {'new_password': 'Новый пароль должен отличаться от текущего.'}
-            )
-        instance.set_password(validated_data['new_password'])
-        instance.save()
-        return validated_data
-
-
 class RecipeSerializer(serializers.ModelSerializer):
     """Список рецептов."""
     name = serializers.ReadOnlyField()
@@ -112,7 +47,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
 
 
-class SubscribeSerializer(serializers.ModelSerializer):
+class SubscribeSerializer(UserCreateSerializer):
     """Подписка на автора и отписка (методы GET, POST, DELETE)."""
     email = serializers.ReadOnlyField()
     username = serializers.ReadOnlyField()
@@ -290,44 +225,39 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             'cooking_time': {'required': True},
         }
 
+    def tags_and_ingredients_validating(self, current_obj, class_name):
+        MODELS_DICT = {
+            'tags': Tag,
+            'ingredients': Ingredient
+        }
+        obj_list = []
+        for item in current_obj:
+            id = item if class_name == 'tags' else item['id']
+            if not MODELS_DICT[class_name].objects.filter(id=id).exists():
+                raise serializers.ValidationError(
+                    'Указано несуществующее значение'
+                )
+            current_model = MODELS_DICT[class_name].objects.get(id=id)
+            if current_model in obj_list:
+                raise serializers.ValidationError(
+                    'Значения не могут повторяться'
+                )
+            obj_list.append(current_model)
+
     def validate(self, data):
-        # print(data)
         tags = self.initial_data.get('tags')
-        # print(tags)
         if not tags:
             raise serializers.ValidationError(
                 'Нужно указать минимум 1 тег.'
             )
-        tag_list = []
-        for id in tags:
-            if not Tag.objects.filter(id=id).exists():
-                raise serializers.ValidationError(
-                    'Указан несуществующий ингридиент'
-                )
-            tag = Tag.objects.get(id=id)
-            if tag in tag_list:
-                raise serializers.ValidationError(
-                    'Ингридиенты не могут повторяться'
-                )
-            tag_list.append(tag)
+        self.tags_and_ingredients_validating(tags, 'tags')
 
         ingredients = data.get('ingredients')
         if not ingredients:
             raise serializers.ValidationError(
                 'Нужно указать минимум 1 ингредиент.'
             )
-        ingredient_list = []
-        for item in ingredients:
-            if not Ingredient.objects.filter(id=item['id']).exists():
-                raise serializers.ValidationError(
-                    'Указан несуществующий ингридиент'
-                )
-            ingredient = Ingredient.objects.get(id=item['id'])
-            if ingredient in ingredient_list:
-                raise serializers.ValidationError(
-                    'Ингридиенты не могут повторяться'
-                )
-            ingredient_list.append(ingredient)
+        self.tags_and_ingredients_validating(ingredients, 'ingredients')
         return data
 
     @transaction.atomic
