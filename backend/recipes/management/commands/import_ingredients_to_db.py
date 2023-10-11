@@ -23,8 +23,8 @@ class Command(BaseCommand):
                     for row in reader
                 ]
                 Ingredient.objects.bulk_create(ingredients)
-        except IntegrityError:
-            print('Ошибка при импорте данных в базу!')
+        except IntegrityError as error:
+            print(f'Ошибка импорта: {error}')
         except FileNotFoundError:
             print('Файл не найден!')
 

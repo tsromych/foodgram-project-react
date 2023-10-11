@@ -55,7 +55,7 @@ class SubscribeViewSet(mixins.ListModelMixin,
                        mixins.CreateModelMixin,
                        mixins.DestroyModelMixin,
                        viewsets.GenericViewSet):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, )
     pagination_class = CustomPagination
 
     def create(self, request, author_id=None):
@@ -69,7 +69,7 @@ class SubscribeViewSet(mixins.ListModelMixin,
         if serializer.is_valid(raise_exception=True):
             Subscription.objects.create(user=user, author=author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, tatus=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, author_id=None):
         user = request.user
@@ -81,8 +81,10 @@ class SubscribeViewSet(mixins.ListModelMixin,
                 status=status.HTTP_400_BAD_REQUEST
             )
         subscribe.delete()
-        return Response('Вы успешно отписались от автора',
-                        status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            'Вы успешно отписались от автора',
+            status=status.HTTP_204_NO_CONTENT
+        )
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -114,6 +116,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeCreateSerializer
 
     def create(self, request, *args, **kwargs):
+        if request.user.is_anonymous:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         serializer = self.get_serializer(
             data=request.data,
             context={'user': request.user, 'request': request}

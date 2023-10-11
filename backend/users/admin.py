@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
 from . import models
-from .forms import SubscribeForm
 
 
 @admin.register(models.CustomUser)
@@ -23,7 +22,6 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(models.Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    form = SubscribeForm
     list_display = (
         'user',
         'author'

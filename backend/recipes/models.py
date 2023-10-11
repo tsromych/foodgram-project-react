@@ -186,7 +186,7 @@ class RecipeIngredients(models.Model):
         return (f'{self.recipe.name} {self.ingredient.name}')
 
 
-class AbstractClass(models.Model):
+class ShoppingCartAndFavoriteAbstractClass(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -207,7 +207,7 @@ class AbstractClass(models.Model):
         return f'{self.user.username} - {self.recipe.name}'
 
 
-class ShoppingCart(AbstractClass):
+class ShoppingCart(ShoppingCartAndFavoriteAbstractClass):
 
     class Meta:
         constraints = [
@@ -220,7 +220,7 @@ class ShoppingCart(AbstractClass):
         verbose_name_plural = 'списоки покупок'
 
 
-class Favorite(AbstractClass):
+class Favorite(ShoppingCartAndFavoriteAbstractClass):
 
     class Meta:
         constraints = [
